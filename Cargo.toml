@@ -7,3 +7,6 @@ authors = ["Max Jacobson <max@hardscrabble.net>"]
 error-chain = "0.10.0"
 hyper = "0.10.5"
 hyper-native-tls = "0.2.2"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"

@@ -1,14 +1,50 @@
+// TODO: remove duplication in client logic
+// TODO: organize library code into multiple files
+// TODO: move tests into their own tests directory
+
 extern crate hyper;
 extern crate hyper_native_tls;
 
 #[macro_use]
 extern crate error_chain;
 
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde_json;
+
 mod errors {
     error_chain!{}
 }
 
 use errors::*;
+
+use std::io::Read;
+
+#[derive(Debug, Deserialize)]
+pub struct Subscription {
+    created_at: String,
+    feed_id: i32,
+    feed_url: String,
+    id: i32,
+    site_url: String,
+    title: String,
+}
+
+// TODO: add etag
+// TODO: add feedbin request id (idk what it is but it's in the response)
+// TODO: add last modified time
+#[derive(Debug)]
+pub struct Subscriptions {
+    list: Vec<Subscription>,
+}
+
+impl Subscriptions {
+    pub fn len(&self) -> usize {
+        self.list.len()
+    }
+}
+
 
 pub struct User {
     email: String,
@@ -29,18 +65,45 @@ impl User {
         let connector = hyper::net::HttpsConnector::new(ssl);
         let client = hyper::Client::with_connector(connector);
 
+        let resp = client.get("https://api.feedbin.com/v2/authentication.json")
+            .headers(self.basic_auth_headers())
+            .send()
+            .chain_err(|| "Unable to request auth status")?;
+
+        Ok(resp.status == hyper::Ok)
+    }
+
+    // TODO: allow providing etag
+    // TODO: allow providing "since" value
+    pub fn subscriptions(&self) -> Result<Subscriptions> {
+        let ssl = hyper_native_tls::NativeTlsClient::new().
+            chain_err(|| "Unable to intialize ssl client")?;
+        let connector = hyper::net::HttpsConnector::new(ssl);
+        let client = hyper::Client::with_connector(connector);
+
+        let mut resp = client.get("https://api.feedbin.com/v2/subscriptions.json")
+            .headers(self.basic_auth_headers())
+            .send()
+            .chain_err(|| "Unable to request subscriptions")?;
+
+
+        let mut body = String::new();
+        resp.read_to_string(&mut body).chain_err(|| "Unable to read response")?;
+
+        let subscriptions: Vec<Subscription> =
+            serde_json::from_str(&body).chain_err(|| "Couldn't deserialize response")?;
+
+        Ok(Subscriptions { list: subscriptions })
+    }
+
+    fn basic_auth_headers(&self) -> hyper::header::Headers {
         let mut headers = hyper::header::Headers::new();
         headers.set(hyper::header::Authorization(hyper::header::Basic {
                                                      username: self.email.to_owned(),
                                                      password: Some(self.password.to_owned()),
                                                  }));
 
-        let resp = client.get("https://api.feedbin.com/v2/authentication.json")
-            .headers(headers)
-            .send()
-            .chain_err(|| "Unable to request auth status")?;
-
-        Ok(resp.status == hyper::Ok)
+        headers
     }
 }
 
@@ -66,5 +129,24 @@ mod tests {
         let user = User::new(email, password);
 
         assert_eq!(user.authenticated().unwrap(), false);
+    }
+
+    #[test]
+    fn subscriptions() {
+        let email = env::var("FEEDBIN_USERNAME").unwrap();
+        let password = env::var("FEEDBIN_PASSWORD").unwrap();
+        let user = User::new(email, password);
+
+        let subscriptions = user.subscriptions().unwrap();
+
+        println!("{:?}", subscriptions);
+
+        assert_ne!(subscriptions.len(), 0);
+    }
+
+    #[test]
+    #[ignore]
+    fn subscriptions_with_date() {
+        panic!("TKTK");
     }
 }
