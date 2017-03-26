@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["Max Jacobson <max@hardscrabble.net>"]
 
 [dependencies]
+hyper = "0.10.5"
+hyper-native-tls = "0.2.2"
