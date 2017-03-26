@@ -1,7 +1,4 @@
-.PHONY: test run
-
-run:
-	cargo run
+.PHONY: test
 
 test:
 	cargo test
