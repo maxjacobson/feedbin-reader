@@ -11,6 +11,10 @@ extern crate toml;
 #[macro_use]
 extern crate error_chain;
 
+extern crate feedbin_api_client;
+
+use feedbin_api_client::User;
+
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -67,33 +71,33 @@ impl Credentials {
             }
         }
     }
-}
 
+    fn authenticated_user(&self) -> Result<User> {
+        let user = User {
+            email: self.email.clone(),
+            password: self.password.clone(),
+        };
+
+        if user.authenticated().chain_err(|| "Couldn't check auth status")? {
+            Ok(user)
+        } else {
+            Err("Credentials are incorrect".into())
+        }
+    }
+}
 
 // TODO: flesh out this interface to be a fully-featured RSS client with a
 //       readline interface
 // TODO: but _then_ go ahead and try to make it a more beautiful TUI using
 //       something like termion (so you don't need to press enter after each
 //       command, and so you have control over the whole screen)
-fn main() {
-    match Credentials::new() {
-        Ok(credentials) => {
-            println!("{:?}", credentials);
-        }
-        Err(ref e) => {
-            println!("error: {}", e);
+fn start_app() -> Result<()> {
+    let credentials = Credentials::new().chain_err(|| "Couldn't get credentials")?;
 
-            for e in e.iter().skip(1) {
-                println!("caused by: {}", e);
-            }
+    let user = credentials.authenticated_user().
+        chain_err(|| "Couldn't verify credentials are authentic. Please check your config file.")?;
 
-            // The backtrace is not always generated. Try to run this example
-            // with `RUST_BACKTRACE=1`.
-            if let Some(backtrace) = e.backtrace() {
-                println!("backtrace: {:?}", backtrace);
-            }
-        }
-    }
+    println!("Great, you're logged in! {:?}", user);
 
     // next steps
     // - make a user
@@ -112,4 +116,23 @@ fn main() {
     //        user does C-C or C-D, etc
     //  - add a sync-history-audit-log command
     //  - add a "list subscriptions" command
+
+    Ok(())
+}
+
+
+fn main() {
+    if let Err(ref e) = start_app() {
+        println!("error: {}", e);
+
+        for e in e.iter().skip(1) {
+            println!("caused by: {}", e);
+        }
+
+        // The backtrace is not always generated. Try to run this example
+        // with `RUST_BACKTRACE=1`.
+        if let Some(backtrace) = e.backtrace() {
+            println!("backtrace: {:?}", backtrace);
+        }
+    }
 }
