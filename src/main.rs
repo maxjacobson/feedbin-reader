@@ -1,11 +1,24 @@
+// TODO
+// - restructure the non- main.rs code into a nested crate, which I think we
+//   might need for some code isolation purposes?
+
 extern crate rustyline;
 extern crate xdg;
 #[macro_use]
 extern crate serde_derive;
 extern crate toml;
 
+#[macro_use]
+extern crate error_chain;
+
 use std::fs::File;
 use std::io::prelude::*;
+
+mod errors {
+    error_chain!{}
+}
+
+use errors::*;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct Credentials {
@@ -14,38 +27,43 @@ struct Credentials {
 }
 
 impl Credentials {
-    // TODO: use error chain here, get rid of pesky unwraps
-    fn new() -> Credentials {
-        let xdg_dirs = xdg::BaseDirectories::with_prefix("feedbin-reader").unwrap();
+    fn new() -> Result<Credentials> {
+        let xdg_dirs = xdg::BaseDirectories::with_prefix("feedbin-reader").
+            chain_err(|| "Couldn't setup config directory")?;
 
         match xdg_dirs.find_config_file("feedbin-reader.toml") {
             Some(config_path) => {
-                let mut f = File::open(config_path).unwrap();
+                let mut f = File::open(config_path).chain_err(|| "Couldn't open config file path")?;
                 let mut s = String::new();
-                f.read_to_string(&mut s).unwrap();
+                f.read_to_string(&mut s).chain_err(|| "Couldn't read config file")?;
 
-                toml::from_str(&s).unwrap()
+                Ok(toml::from_str(&s).chain_err(|| "Couldn't parse config file")?)
             }
             None => {
                 let mut rl = rustyline::Editor::<()>::new();
                 println!("Enter email:");
-                let email = rl.readline("> ").unwrap();
+                let email = rl.readline("> ").chain_err(|| "Couldn't read email")?;
                 println!("Enter password:");
-                let password = rl.readline("> ").unwrap();
+                let password = rl.readline("> ").chain_err(|| "Couldn't read password")?;
 
                 let creds = Credentials {
                     email: email,
                     password: password,
                 };
 
-                let new_config_path = xdg_dirs.place_config_file("feedbin-reader.toml").unwrap();
+                let new_config_path = xdg_dirs.place_config_file("feedbin-reader.toml")
+                    .chain_err(|| "Couldn't create path to config file")?;
 
-                let mut config_file = File::create(new_config_path).unwrap();
+                let mut config_file =
+                    File::create(new_config_path).chain_err(|| "Couldn't create config file")?;
 
-                let serialized = toml::to_string(&creds).unwrap();
-                config_file.write_all(serialized.as_bytes()).unwrap();
+                let serialized = toml::to_string(&creds).
+                    chain_err(|| "Couldn't serialize configuration as toml")?;
 
-                creds
+                config_file.write_all(serialized.as_bytes())
+                    .chain_err(|| "Couldn't write configuration to file")?;
+
+                Ok(creds)
             }
         }
     }
@@ -58,9 +76,24 @@ impl Credentials {
 //       something like termion (so you don't need to press enter after each
 //       command, and so you have control over the whole screen)
 fn main() {
-    let credentials = Credentials::new();
+    match Credentials::new() {
+        Ok(credentials) => {
+            println!("{:?}", credentials);
+        }
+        Err(ref e) => {
+            println!("error: {}", e);
 
-    println!("{:?}", credentials);
+            for e in e.iter().skip(1) {
+                println!("caused by: {}", e);
+            }
+
+            // The backtrace is not always generated. Try to run this example
+            // with `RUST_BACKTRACE=1`.
+            if let Some(backtrace) = e.backtrace() {
+                println!("backtrace: {:?}", backtrace);
+            }
+        }
+    }
 
     // next steps
     // - make a user
