@@ -90,8 +90,8 @@ impl Credentials {
 fn start_app() -> Result<()> {
     let credentials = Credentials::new().chain_err(|| "Couldn't get credentials")?;
 
-    let user = credentials.authenticated_user().
-        chain_err(|| "Couldn't verify credentials are authentic.")?;
+    let user = credentials.authenticated_user()
+        .chain_err(|| "Couldn't verify credentials are authentic.")?;
 
     let mut rl = rustyline::Editor::<()>::new();
 
