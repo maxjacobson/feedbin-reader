@@ -1,7 +1,14 @@
 extern crate hyper;
 extern crate hyper_native_tls;
 
-// TODO: add error handling
+#[macro_use]
+extern crate error_chain;
+
+mod errors {
+    error_chain!{}
+}
+
+use errors::*;
 
 pub struct User {
     email: String,
@@ -16,8 +23,9 @@ impl User {
         }
     }
 
-    pub fn authenticated(&self) -> bool {
-        let ssl = hyper_native_tls::NativeTlsClient::new().unwrap();
+    pub fn authenticated(&self) -> Result<bool> {
+        let ssl = hyper_native_tls::NativeTlsClient::new().
+            chain_err(|| "Unable to intialize ssl client")?;
         let connector = hyper::net::HttpsConnector::new(ssl);
         let client = hyper::Client::with_connector(connector);
 
@@ -30,9 +38,9 @@ impl User {
         let resp = client.get("https://api.feedbin.com/v2/authentication.json")
             .headers(headers)
             .send()
-            .unwrap();
+            .chain_err(|| "Unable to request auth status")?;
 
-        resp.status == hyper::Ok
+        Ok(resp.status == hyper::Ok)
     }
 }
 
@@ -48,7 +56,7 @@ mod tests {
         let password = env::var("FEEDBIN_PASSWORD").unwrap();
         let user = User::new(email, password);
 
-        assert_eq!(user.authenticated(), true);
+        assert_eq!(user.authenticated().unwrap(), true);
     }
 
     #[test]
@@ -57,6 +65,6 @@ mod tests {
         let password = String::from("foobar");
         let user = User::new(email, password);
 
-        assert_eq!(user.authenticated(), false);
+        assert_eq!(user.authenticated().unwrap(), false);
     }
 }
