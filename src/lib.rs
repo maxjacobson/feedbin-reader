@@ -21,18 +21,11 @@ use errors::*;
 
 use std::io::Read;
 
-#[derive(Debug, Deserialize)]
-pub struct Subscription {
-    created_at: String,
-    feed_id: i32,
-    feed_url: String,
-    id: i32,
-    site_url: String,
-    title: String,
-}
-
 mod etag;
 use etag::Etag;
+
+mod subscription;
+use subscription::Subscription;
 
 // TODO: add feedbin request id (idk what it is but it's in the response)
 // TODO: add last modified time
