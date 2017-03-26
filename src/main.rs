@@ -1,7 +1,3 @@
-// TODO
-// - restructure the non- main.rs code into a nested crate, which I think we
-//   might need for some code isolation purposes?
-
 extern crate rustyline;
 extern crate xdg;
 #[macro_use]
@@ -97,25 +93,31 @@ fn start_app() -> Result<()> {
     let user = credentials.authenticated_user().
         chain_err(|| "Couldn't verify credentials are authentic.")?;
 
-    println!("Great, you're logged in! {:?}", user);
+    let mut rl = rustyline::Editor::<()>::new();
 
-    // next steps
-    // - make a user
-    // - confirm the user's credentials are correct
-    //      - if not, instruct them to check the config file and bail out
-    //
-    // - start a command loop
-    // - add a "sync" command
-    //      - downloads subscriptions and puts them in database if they already
-    //        exist
-    //      - remove subscriptions from database if they no longer exist on
-    //        server
-    //      - adds a sync-event record with time and success status
-    //      - (in the future) submits any pending events done locally, such as
-    //        deleting a subscription. This should automatically run when the
-    //        user does C-C or C-D, etc
-    //  - add a sync-history-audit-log command
-    //  - add a "list subscriptions" command
+    loop {
+        let input = rl.readline("> ").chain_err(|| "Couldn't read input")?;
+        if input == "sync" {
+            println!("Syncing...");
+            //- downloads subscriptions and puts them in database if they already
+            //  exist
+            //- remove subscriptions from database if they no longer exist on
+            //  server
+            //- adds a sync-event record with time and success status
+            //- (in the future) submits any pending events done locally, such as
+            //  deleting a subscription. This should automatically run when the
+            //  user does C-C or C-D, etc
+            let subscriptions = user.subscriptions();
+        } else if input == "list subscriptions" {
+            println!("listing subscriptions from database (to come)...");
+        } else if input == "list sync events" {
+            println!("listing sync events from database (to come)...");
+        } else if input == "quit" {
+            break;
+        } else {
+            println!("Unrecognized command: {:?}", input);
+        }
+    }
 
     Ok(())
 }
