@@ -22,7 +22,7 @@ use errors::*;
 use std::io::Read;
 
 #[derive(Clone, Debug)]
-struct Etag {
+pub struct Etag {
     fingerprint: String,
 }
 
@@ -62,10 +62,9 @@ pub struct Subscription {
 
 // TODO: add feedbin request id (idk what it is but it's in the response)
 // TODO: add last modified time
-#[derive(Debug)]
 pub struct Subscriptions {
     list: Vec<Subscription>,
-    etag: Etag,
+    pub etag: Etag,
 }
 
 impl Subscriptions {
@@ -174,8 +173,6 @@ mod tests {
         let user = User::new(email, password);
 
         let subscriptions = user.subscriptions().unwrap();
-
-        println!("{:?}", subscriptions);
 
         assert_ne!(subscriptions.len(), 0);
     }
