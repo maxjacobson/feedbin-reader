@@ -1,5 +1,5 @@
 [package]
-name = "feedbin-api-client"
+name = "feedbin-reader"
 version = "0.1.0"
 authors = ["Max Jacobson <max@hardscrabble.net>"]
 
