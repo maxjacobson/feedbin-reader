@@ -21,6 +21,35 @@ use errors::*;
 
 use std::io::Read;
 
+#[derive(Clone, Debug)]
+struct Etag {
+    fingerprint: String,
+}
+
+impl hyper::header::Header for Etag {
+    fn header_name() -> &'static str {
+        "ETag"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> hyper::Result<Etag> {
+        if raw.len() == 1 {
+            let line = &raw[0];
+            match std::str::from_utf8(&line) {
+                Ok(fingerprint) => return Ok(Etag { fingerprint: fingerprint.to_owned() }),
+                _ => return Err(hyper::Error::Header),
+            }
+        }
+
+        Err(hyper::Error::Header)
+    }
+}
+
+impl hyper::header::HeaderFormat for Etag {
+    fn fmt_header(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(&self.fingerprint)
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Subscription {
     created_at: String,
@@ -31,12 +60,12 @@ pub struct Subscription {
     title: String,
 }
 
-// TODO: add etag
 // TODO: add feedbin request id (idk what it is but it's in the response)
 // TODO: add last modified time
 #[derive(Debug)]
 pub struct Subscriptions {
     list: Vec<Subscription>,
+    etag: Etag,
 }
 
 impl Subscriptions {
@@ -93,7 +122,14 @@ impl User {
         let subscriptions: Vec<Subscription> =
             serde_json::from_str(&body).chain_err(|| "Couldn't deserialize response")?;
 
-        Ok(Subscriptions { list: subscriptions })
+        // FIXME: no unwrap please
+        // This is an Option, not a Result, so how does that fit into the picture?
+        let etag: &Etag = resp.headers.get().unwrap();
+
+        Ok(Subscriptions {
+               list: subscriptions,
+               etag: etag.to_owned(),
+           })
     }
 
     fn basic_auth_headers(&self) -> hyper::header::Headers {
