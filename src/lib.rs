@@ -11,7 +11,7 @@ mod errors;
 mod etag;
 mod subscription;
 mod subscriptions;
-mod user;
+pub mod user;
 
 #[cfg(test)]
 mod tests {

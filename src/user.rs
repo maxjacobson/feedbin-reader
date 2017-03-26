@@ -7,9 +7,10 @@ extern crate hyper_native_tls;
 use std::io::Read;
 extern crate serde_json;
 
+#[derive(Debug)]
 pub struct User {
-    email: String,
-    password: String,
+    pub email: String,
+    pub password: String,
 }
 
 impl User {
