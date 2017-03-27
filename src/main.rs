@@ -9,6 +9,13 @@ extern crate error_chain;
 
 extern crate feedbin_api_client;
 
+#[macro_use]
+extern crate diesel;
+use diesel::prelude::*;
+
+#[macro_use]
+extern crate diesel_codegen;
+
 use feedbin_api_client::User;
 
 use std::fs::File;
@@ -95,6 +102,25 @@ fn start_app() -> Result<()> {
 
     let mut rl = rustyline::Editor::<()>::new();
 
+    let xdg_dirs = xdg::BaseDirectories::with_prefix("feedbin-reader").
+        chain_err(|| "Couldn't setup config directory")?;
+
+    let db_url = match xdg_dirs.find_cache_file("feedbin-reader.db") {
+        Some(db_url) => db_url,
+        None => xdg_dirs.place_cache_file("feedbin-reader.db").chain_err(|| "Couldn't place db")?,
+    };
+
+    std::env::set_var("FEEDBIN_READER_DATABASE_URL", db_url.to_str().unwrap());
+
+    let conn = diesel::sqlite::SqliteConnection::establish(
+        db_url.to_str().unwrap()
+    ).chain_err(|| "Couldn't establish database connection")?;
+
+    diesel::migrations::run_pending_migrations(&conn).chain_err(|| "Couldn't run migrations.")?;
+    // mod schema {
+    //     infer_schema!("FEEDBIN_READER_DATABASE_URL");
+    // }
+
     loop {
         let input = rl.readline("> ").chain_err(|| "Couldn't read input")?;
         if input == "sync" {
@@ -107,7 +133,11 @@ fn start_app() -> Result<()> {
             //- (in the future) submits any pending events done locally, such as
             //  deleting a subscription. This should automatically run when the
             //  user does C-C or C-D, etc
-            let subscriptions = user.subscriptions();
+            let subscriptions = user.subscriptions().chain_err(|| "Couldn't load subscription")?;
+
+            for subscription in subscriptions.list.into_iter() {
+                // diesel::insert(&subscription).into(schema::subscriptions::table).execute(conn).chain_err(|| "Couldn't insert subscription")?;
+            }
         } else if input == "list subscriptions" {
             println!("listing subscriptions from database (to come)...");
         } else if input == "list sync events" {
