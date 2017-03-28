@@ -46,12 +46,12 @@ impl hyper::header::HeaderFormat for Etag {
 }
 #[derive(Debug, Deserialize)]
 pub struct Subscription {
-    created_at: String,
-    feed_id: i32,
-    feed_url: String,
-    id: i32,
-    site_url: String,
-    title: String,
+    pub created_at: String,
+    pub feed_id: i32,
+    pub feed_url: String,
+    pub id: i32,
+    pub site_url: String,
+    pub title: String,
 }
 
 // TODO: add feedbin request id (idk what it is but it's in the response)

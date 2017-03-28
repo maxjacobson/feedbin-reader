@@ -6,11 +6,17 @@ Stores config in `~/.config/feedbin-reader`
 
 Caches data in a sqlite database in `~/.cache/feedbin-reader`
 
+(Note, that's not true yet, for now the db is alongside the code)
+
 ## Development
 
 Running the thing:
 
 ```
+# generate your local development database
+diesel migration run
+
+# run the app
 cargo run
 ```
 
