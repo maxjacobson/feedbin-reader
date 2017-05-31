@@ -1,0 +1,12 @@
+---
+engines:
+  rubocop:
+    enabled: true
+  rustfmt:
+    enabled: true
+ratings:
+  paths:
+    - "**.rs"
+exclude_paths:
+  - target
+  - feedbin-api-client/target

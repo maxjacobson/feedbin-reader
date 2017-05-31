@@ -127,12 +127,6 @@ fn start_app() -> Result<()> {
     // let xdg_dirs = xdg::BaseDirectories::with_prefix("feedbin-reader").
     //     chain_err(|| "Couldn't setup config directory")?;
 
-    // FIXME: get this working
-    // let db_url = match xdg_dirs.find_cache_file("feedbin-reader.db") {
-    //     Some(db_url) => db_url,
-    //     None => xdg_dirs.place_cache_file("feedbin-reader.db").chain_err(|| "Couldn't place db")?,
-    // };
-
     // FIXME: this looks weird to me, this ok method
     dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").chain_err(|| "db url not set")?;
@@ -170,7 +164,9 @@ fn start_app() -> Result<()> {
                 };
                 // TODO: only insert or update
                 // and delete stuff too
-                diesel::insert(&new_subscription).into(schema::subscriptions::table).execute(&conn).chain_err(|| "Couldn't insert subscription")?;
+                diesel::insert(&new_subscription).into(schema::subscriptions::table)
+                    .execute(&conn)
+                    .chain_err(|| "Couldn't insert subscription")?;
             }
         } else if input == "list subscriptions" {
             println!("listing subscriptions from database (to come)...");
