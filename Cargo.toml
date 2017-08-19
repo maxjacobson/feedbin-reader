@@ -7,7 +7,7 @@ authors = ["Max Jacobson <max@hardscrabble.net>"]
 diesel = { version = "0.12.0", features = ["sqlite"] }
 diesel_codegen = { version = "0.12.0", features = ["sqlite"] }
 dotenv = "0.8"
-error-chain = "0.10.0"
+error-chain = "0.11.0-rc.2"
 feedbin-api-client = { path = "./feedbin-api-client" }
 rustyline = "1.0.0"
 serde = "0.9"
