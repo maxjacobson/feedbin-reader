@@ -159,7 +159,7 @@ fn start_app() -> Result<()> {
             //  user does C-C or C-D, etc
             let subscriptions = user.subscriptions().chain_err(|| "Couldn't load subscription")?;
 
-            for subscription in subscriptions.list.into_iter() {
+            for subscription in subscriptions.list {
                 let new_subscription = NewSubscription {
                     created_at: &subscription.created_at,
                     feed_id: subscription.feed_id,
