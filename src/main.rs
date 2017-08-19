@@ -57,16 +57,22 @@ struct Credentials {
 
 impl Credentials {
     fn new() -> Result<Credentials> {
-        let xdg_dirs = xdg::BaseDirectories::with_prefix("feedbin-reader").
-            chain_err(|| "Couldn't setup config directory")?;
+        let xdg_dirs = xdg::BaseDirectories::with_prefix("feedbin-reader")
+            .chain_err(|| "Couldn't setup config directory")?;
 
         match xdg_dirs.find_config_file("feedbin-reader.toml") {
             Some(config_path) => {
-                let mut f = File::open(config_path).chain_err(|| "Couldn't open config file path")?;
+                let mut f = File::open(config_path).chain_err(
+                    || "Couldn't open config file path",
+                )?;
                 let mut s = String::new();
-                f.read_to_string(&mut s).chain_err(|| "Couldn't read config file")?;
+                f.read_to_string(&mut s).chain_err(
+                    || "Couldn't read config file",
+                )?;
 
-                Ok(toml::from_str(&s).chain_err(|| "Couldn't parse config file")?)
+                Ok(toml::from_str(&s).chain_err(
+                    || "Couldn't parse config file",
+                )?)
             }
             None => {
                 let mut rl = rustyline::Editor::<()>::new();
@@ -80,17 +86,21 @@ impl Credentials {
                     password: password,
                 };
 
-                let new_config_path = xdg_dirs.place_config_file("feedbin-reader.toml")
+                let new_config_path = xdg_dirs
+                    .place_config_file("feedbin-reader.toml")
                     .chain_err(|| "Couldn't create path to config file")?;
 
-                let mut config_file =
-                    File::create(new_config_path).chain_err(|| "Couldn't create config file")?;
+                let mut config_file = File::create(new_config_path).chain_err(
+                    || "Couldn't create config file",
+                )?;
 
-                let serialized = toml::to_string(&creds).
-                    chain_err(|| "Couldn't serialize configuration as toml")?;
+                let serialized = toml::to_string(&creds).chain_err(
+                    || "Couldn't serialize configuration as toml",
+                )?;
 
-                config_file.write_all(serialized.as_bytes())
-                    .chain_err(|| "Couldn't write configuration to file")?;
+                config_file.write_all(serialized.as_bytes()).chain_err(
+                    || "Couldn't write configuration to file",
+                )?;
 
                 Ok(creds)
             }
@@ -103,7 +113,10 @@ impl Credentials {
             password: self.password.clone(),
         };
 
-        if user.authenticated().chain_err(|| "Couldn't check auth status")? {
+        if user.authenticated().chain_err(
+            || "Couldn't check auth status",
+        )?
+        {
             Ok(user)
         } else {
             Err("Credentials are incorrect".into())
@@ -119,8 +132,9 @@ impl Credentials {
 fn start_app() -> Result<()> {
     let credentials = Credentials::new().chain_err(|| "Couldn't get credentials")?;
 
-    let user = credentials.authenticated_user()
-        .chain_err(|| "Couldn't verify credentials are authentic.")?;
+    let user = credentials.authenticated_user().chain_err(
+        || "Couldn't verify credentials are authentic.",
+    )?;
 
     let mut rl = rustyline::Editor::<()>::new();
 
@@ -130,20 +144,23 @@ fn start_app() -> Result<()> {
     // FIXME: get this working
     // let db_url = match xdg_dirs.find_cache_file("feedbin-reader.db") {
     //     Some(db_url) => db_url,
-    //     None => xdg_dirs.place_cache_file("feedbin-reader.db").chain_err(|| "Couldn't place db")?,
+    //     None => {
+    //          xdg_dirs.place_cache_file("feedbin-reader.db").
+    //          chain_err(|| "Couldn't place db")?
+    //     },
     // };
 
     // FIXME: this looks weird to me, this ok method
     dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").chain_err(|| "db url not set")?;
-    let conn = diesel::sqlite::SqliteConnection::establish(
-        &database_url
-    ).chain_err(|| "Couldn't establish database connection")?;
+    let conn = diesel::sqlite::SqliteConnection::establish(&database_url)
+        .chain_err(|| "Couldn't establish database connection")?;
 
     // FIXME: get this working so you can run from anywhere
     // diesel::embed_migrations!("../migrations");
 
-    diesel::migrations::run_pending_migrations(&conn).chain_err(|| "Couldn't run migrations.")?;
+    diesel::migrations::run_pending_migrations(&conn)
+        .chain_err(|| "Couldn't run migrations.")?;
 
     loop {
         let input = rl.readline("> ").chain_err(|| "Couldn't read input")?;
@@ -157,7 +174,9 @@ fn start_app() -> Result<()> {
             //- (in the future) submits any pending events done locally, such as
             //  deleting a subscription. This should automatically run when the
             //  user does C-C or C-D, etc
-            let subscriptions = user.subscriptions().chain_err(|| "Couldn't load subscription")?;
+            let subscriptions = user.subscriptions().chain_err(
+                || "Couldn't load subscription",
+            )?;
 
             for subscription in subscriptions.list {
                 let new_subscription = NewSubscription {
@@ -170,7 +189,10 @@ fn start_app() -> Result<()> {
                 };
                 // TODO: only insert or update
                 // and delete stuff too
-                diesel::insert(&new_subscription).into(schema::subscriptions::table).execute(&conn).chain_err(|| "Couldn't insert subscription")?;
+                diesel::insert(&new_subscription)
+                    .into(schema::subscriptions::table)
+                    .execute(&conn)
+                    .chain_err(|| "Couldn't insert subscription")?;
             }
         } else if input == "list subscriptions" {
             println!("listing subscriptions from database (to come)...");
